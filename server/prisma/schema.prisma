@@ -16,7 +16,7 @@ model api_keys {
 }
 
 model workspace_documents {
-  id                   Int                   @id @default(autoincrement())
+  id                   BigInt                @id @default(autoincrement())
   docId                String                @unique
   filename             String
   docpath              String
@@ -141,7 +141,7 @@ model workspaces {
 }
 
 model workspace_threads {
-  id            Int        @id @default(autoincrement())
+  id            BigInt     @id @default(autoincrement())
   name          String
   slug          String     @unique
   workspace_id  Int
@@ -156,7 +156,7 @@ model workspace_threads {
 }
 
 model workspace_suggested_messages {
-  id            Int        @id @default(autoincrement())
+  id            BigInt     @id @default(autoincrement())
   workspaceId   Int
   heading       String
   message       String
@@ -168,7 +168,7 @@ model workspace_suggested_messages {
 }
 
 model workspace_chats {
-  id             Int      @id @default(autoincrement())
+  id             BigInt   @id @default(autoincrement())
   workspaceId    Int
   prompt         String
   response       String
@@ -183,7 +183,7 @@ model workspace_chats {
 }
 
 model workspace_agent_invocations {
-  id            Int        @id @default(autoincrement())
+  id            BigInt     @id @default(autoincrement())
   uuid          String     @unique
   prompt        String // Contains agent invocation to parse + option additional text for seed.
   closed        Boolean    @default(false)
@@ -209,7 +209,7 @@ model workspace_users {
 }
 
 model cache_data {
-  id            Int       @id @default(autoincrement())
+  id            BigInt     @id @default(autoincrement())
   name          String
   data          String
   belongsTo     String?
@@ -240,7 +240,7 @@ model embed_configs {
 }
 
 model embed_chats {
-  id                     Int           @id @default(autoincrement())
+  id                     BigInt        @id @default(autoincrement())
   prompt                 String
   response               String
   session_id             String
@@ -254,7 +254,7 @@ model embed_chats {
 }
 
 model event_logs {
-  id         Int      @id @default(autoincrement())
+  id         BigInt      @id @default(autoincrement())
   event      String
   metadata   String?
   userId     Int?
@@ -278,19 +278,19 @@ model slash_command_presets {
 }
 
 model document_sync_queues {
-  id             Int                        @id @default(autoincrement())
+  id             BigInt                        @id @default(autoincrement())
   staleAfterMs   Int                        @default(604800000) // 7 days
   nextSyncAt     DateTime
   createdAt      DateTime                   @default(now())
   lastSyncedAt   DateTime                   @default(now())
-  workspaceDocId Int                        @unique
+  workspaceDocId BigInt                     @unique
   workspaceDoc   workspace_documents?       @relation(fields: [workspaceDocId], references: [id], onDelete: Cascade)
   runs           document_sync_executions[]
 }
 
 model document_sync_executions {
-  id        Int                  @id @default(autoincrement())
-  queueId   Int
+  id        BigInt                  @id @default(autoincrement())
+  queueId   BigInt
   status    String               @default("unknown")
   result    String?
   createdAt DateTime             @default(now())
