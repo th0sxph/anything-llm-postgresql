@@ -4,7 +4,7 @@ CREATE TABLE "event_logs" (
     "event" TEXT NOT NULL,
     "metadata" TEXT,
     "userId" INTEGER,
-    "occurredAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "occurredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- CreateIndex
