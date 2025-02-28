@@ -19,10 +19,7 @@ on:
       - 'browser-extension/**/*' # Chrome extension is submodule
       - 'server/utils/agents/aibitat/example/**/*' # Do not push new image for local dev testing of new aibitat images.
 env:
-  PROJECT_ID: 'my-project' # TODO: update to your Google Cloud project ID
-  REGION: 'us-central1' # TODO: update to your region
-  SERVICE: 'my-service' # TODO: update to your service name
-  WORKLOAD_IDENTITY_PROVIDER: 'projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider'
+  SERVICE: 'anythingllm'
 
 jobs:
   push_multi_platform_to_registries:
@@ -41,21 +38,34 @@ jobs:
         with:
           version: v0.19.0
 
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@f112390a2df9932162083945e46d439060d66ec2' # google-github-actions/auth@v2
+        env:
+            WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+            SERVICE_ACCOUNT: ${{ secrets.SERVICE_ACCOUNT }}
+        with:
+          token_format: 'access_token'
+          project_id: '${{ vars.PROJECT_ID }}'
+          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ env.SERVICE_ACCOUNT }}'
+
       - name: Log in to Docker Hub
         uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
         with:
           username: 'oauth2accesstoken'
-          password: '${{ steps.auth.outputs.auth_token }}'
-          registry: '${{ env.REGION }}-docker.pkg.dev'
+          password: '${{ steps.auth.outputs.access_token }}'
+          registry: '${{ vars.REGION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ vars.REGISTRY_REPO_NAME }}'
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           images: |
-            '${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}:${{ github.sha }}'
+            ${{ vars.REGION }}-docker.pkg.dev/${{ vars.PROJECT_ID }}/${{ vars.REGISTRY_REPO_NAME }}/${{ env.SERVICE }}
           tags: |
             type=raw,value=dev
+            type=sha,format=long
 
       - name: Build and push multi-platform Docker image
         uses: docker/build-push-action@v6
@@ -88,23 +98,24 @@ jobs:
           echo "CVE_EXCEPTIONS=$CVE_NAMES" >> $GITHUB_OUTPUT
         shell: bash
 
+      # Vex attestations in gcp?
       # About VEX attestations https://docs.docker.com/scout/explore/exceptions/
       # Justifications https://github.com/openvex/spec/blob/main/OPENVEX-SPEC.md#status-justifications
       # Fixed to use v1.15.1 of scout-cli as v1.16.0 install script is broken
       # https://github.com/docker/scout-cli
-      - name: Add VEX attestations
-        env:
-          CVE_EXCEPTIONS: ${{ steps.cve-list.outputs.CVE_EXCEPTIONS }}
-        run: |
-          echo $CVE_EXCEPTIONS
-          curl -sSfL https://raw.githubusercontent.com/docker/scout-cli/main/install.sh | sh -s --
-          for cve in $CVE_EXCEPTIONS; do
-            for tag in "${{ join(fromJSON(steps.meta.outputs.json).tags, ' ') }}"; do
-              echo "Attaching VEX exception $cve to $tag"
-              docker scout attestation add \
-              --file "./docker/vex/$cve.vex.json" \
-              --predicate-type https://openvex.dev/ns/v0.2.0 \
-              $tag
-            done
-          done
-        shell: bash
+#      - name: Add VEX attestations
+#        env:
+#          CVE_EXCEPTIONS: ${{ steps.cve-list.outputs.CVE_EXCEPTIONS }}
+#        run: |
+#          echo $CVE_EXCEPTIONS
+#          curl -sSfL https://raw.githubusercontent.com/docker/scout-cli/main/install.sh | sh -s --
+#          for cve in $CVE_EXCEPTIONS; do
+#            for tag in "${{ join(fromJSON(steps.meta.outputs.json).tags, ' ') }}"; do
+#              echo "Attaching VEX exception $cve to $tag"
+#              docker scout attestation add \
+#              --file "./docker/vex/$cve.vex.json" \
+#              --predicate-type https://openvex.dev/ns/v0.2.0 \
+#              $tag
+#            done
+#          done
+#        shell: bash
